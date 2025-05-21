@@ -1,65 +1,49 @@
-import { type Metadata } from 'next'
-import { notFound, redirect } from 'next/navigation'
+import { CoreMessage } from 'ai';
+import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
 
-import { auth } from '@/auth'
-import { getChat, getMissingKeys } from '@/app/actions'
-import { Chat } from '@/components/chat'
-import { AI } from '@/lib/chat/actions'
-import { Session } from '@/lib/types'
+import { auth } from '@/app/(auth)/auth';
+import { Chat as PreviewChat } from '@/components/custom/chat';
+import { getChatById } from '@/db/queries';
+import { Chat } from '@/db/schema';
+import { DEFAULT_MODEL_NAME, models } from '@/lib/model';
+import { convertToUIMessages } from '@/lib/utils';
 
-export interface ChatPageProps {
-  params: {
-    id: string
-  }
-}
+export default async function Page(props: { params: Promise<any> }) {
+  const params = await props.params;
+  const { id } = params;
+  const chatFromDb = await getChatById({ id });
 
-export async function generateMetadata({
-  params
-}: ChatPageProps): Promise<Metadata> {
-  const session = await auth()
-
-  if (!session?.user) {
-    return {}
+  if (!chatFromDb) {
+    notFound();
   }
 
-  const chat = await getChat(params.id, session.user.id)
+  // type casting
+  const chat: Chat = {
+    ...chatFromDb,
+    messages: convertToUIMessages(chatFromDb.messages as Array<CoreMessage>),
+  };
 
-  if (!chat || 'error' in chat) {
-    redirect('/')
-  } else {
-    return {
-      title: chat?.title.toString().slice(0, 50) ?? 'Chat'
-    }
-  }
-}
+  const session = await auth();
 
-export default async function ChatPage({ params }: ChatPageProps) {
-  const session = (await auth()) as Session
-  const missingKeys = await getMissingKeys()
-
-  if (!session?.user) {
-    redirect(`/login?next=/chat/${params.id}`)
+  if (!session || !session.user) {
+    return notFound();
   }
 
-  const userId = session.user.id as string
-  const chat = await getChat(params.id, userId)
-
-  if (!chat || 'error' in chat) {
-    redirect('/')
-  } else {
-    if (chat?.userId !== session?.user?.id) {
-      notFound()
-    }
-
-    return (
-      <AI initialAIState={{ chatId: chat.id, messages: chat.messages }}>
-        <Chat
-          id={chat.id}
-          session={session}
-          initialMessages={chat.messages}
-          missingKeys={missingKeys}
-        />
-      </AI>
-    )
+  if (session.user.id !== chat.userId) {
+    return notFound();
   }
+
+  const cookieStore = await cookies();
+  const value = cookieStore.get('model')?.value;
+  const selectedModelName =
+    models.find((m) => m.name === value)?.name || DEFAULT_MODEL_NAME;
+
+  return (
+    <PreviewChat
+      id={chat.id}
+      initialMessages={chat.messages}
+      selectedModelName={selectedModelName}
+    />
+  );
 }

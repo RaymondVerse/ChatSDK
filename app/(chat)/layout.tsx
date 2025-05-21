@@ -1,14 +1,22 @@
-import { SidebarDesktop } from '@/components/sidebar-desktop'
+import { cookies } from 'next/headers';
 
-interface ChatLayoutProps {
-  children: React.ReactNode
-}
+import { AppSidebar } from '@/components/custom/app-sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
-export default async function ChatLayout({ children }: ChatLayoutProps) {
+import { auth } from '../(auth)/auth';
+
+export default async function Layout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
+  const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
+
   return (
-    <div className="relative flex h-[calc(100vh_-_theme(spacing.16))] overflow-hidden">
-      <SidebarDesktop />
-      {children}
-    </div>
-  )
+    <SidebarProvider defaultOpen={!isCollapsed}>
+      <AppSidebar user={session?.user} />
+      <SidebarInset>{children}</SidebarInset>
+    </SidebarProvider>
+  );
 }
