@@ -1,120 +1,194 @@
-import { test as baseTest, expect, Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+import { test, expect, Page } from '@playwright/test';
 
-type Fixtures = {
-  authenticatedPage: Page;
-};
+class ChatPage {
+  constructor(private page: Page) {}
 
-const testEmail = `chat@playwright.com`;
-const testPassword = process.env.TEST_USER_PASSWORD!;
+  async goto() {
+    await this.page.goto('/');
+  }
 
-const test = baseTest.extend<Fixtures>({
-  authenticatedPage: async ({ page }, use) => {
-    await page.goto('/login');
-    await expect(page.getByRole('heading')).toContainText('Sign In');
-    await page.getByPlaceholder('user@acme.com').click();
-    await page.getByPlaceholder('user@acme.com').fill(testEmail);
-    await page.getByLabel('Password').click();
-    await page.getByLabel('Password').fill(testPassword);
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await expect(page.getByPlaceholder('Send a message...')).toBeVisible();
-    await use(page);
-  },
-});
+  public getCurrentURL(): string {
+    return this.page.url();
+  }
 
-test.describe('chat', () => {
-  test('submit a user message and receive response', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.getByPlaceholder('Send a message...').click();
-    await authenticatedPage
-      .getByPlaceholder('Send a message...')
-      .fill('this is a test message, respond with "test"');
-    await authenticatedPage.keyboard.press('Enter');
-    await expect(authenticatedPage.getByRole('main')).toContainText('test');
-  });
+  async sendUserMessage(message: string) {
+    await this.page.getByTestId('multimodal-input').click();
+    await this.page.getByTestId('multimodal-input').fill(message);
+    await this.page.getByTestId('send-button').click();
+    await this.page.getByTestId('message-user-0').isVisible();
+    expect(await this.page.getByTestId('message-user-0').innerText()).toContain(
+      message,
+    );
+  }
 
-  test('redirect to /chat/:id after submitting message', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.getByPlaceholder('Send a message...').click();
-    await authenticatedPage
-      .getByPlaceholder('Send a message...')
-      .fill('this is a test message, respond with "test"');
-    await authenticatedPage.keyboard.press('Enter');
-    await expect(authenticatedPage.getByRole('main')).toContainText('test');
-    await expect(authenticatedPage).toHaveURL(
+  async getAssistantResponse() {
+    return this.page.getByTestId('message-assistant-1').innerText();
+  }
+
+  async isGenerationComplete() {
+    await expect(this.page.getByTestId('send-button')).toBeVisible();
+    await this.page.waitForTimeout(2000);
+  }
+
+  async hasChatIdInUrl() {
+    await expect(this.page).toHaveURL(
       /^http:\/\/localhost:3000\/chat\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
     );
-  });
+  }
 
-  test('submit message through suggested actions', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage
+  async sendUserMessageFromSuggestion() {
+    await this.page
       .getByRole('button', { name: 'What are the advantages of' })
       .click();
+  }
+
+  async editAndResendUserMessage(message: string) {
+    await this.page.getByTestId('edit-user-0').click();
+    await this.page.getByTestId('message-editor').fill(message);
+    await this.page.getByTestId('message-editor-send-button').click();
+    await this.page.getByTestId('message-user-0').isVisible();
     await expect(
-      authenticatedPage.getByText('What are the advantages of'),
-    ).toBeVisible();
+      this.page.getByTestId('message-editor-send-button'),
+    ).not.toBeVisible();
+    expect(await this.page.getByTestId('message-user-0').innerText()).toContain(
+      message,
+    );
+  }
+
+  async isElementVisible(elementId: string) {
+    await expect(this.page.getByTestId(elementId)).toBeVisible();
+  }
+
+  async isElementNotVisible(elementId: string) {
+    await expect(this.page.getByTestId(elementId)).not.toBeVisible();
+  }
+
+  async addImageAttachment() {
+    this.page.on('filechooser', async (fileChooser) => {
+      const filePath = path.join(
+        process.cwd(),
+        'public',
+        'images',
+        'mouth of the seine, monet.jpg',
+      );
+      const imageBuffer = fs.readFileSync(filePath);
+
+      await fileChooser.setFiles({
+        name: 'mouth of the seine, monet.jpg',
+        mimeType: 'image/jpeg',
+        buffer: imageBuffer,
+      });
+    });
+
+    await this.page.getByTestId('attachments-button').click();
+  }
+
+  public get sendButton() {
+    return this.page.getByTestId('send-button');
+  }
+
+  public get stopButton() {
+    return this.page.getByTestId('stop-button');
+  }
+
+  public get multimodalInput() {
+    return this.page.getByTestId('multimodal-input');
+  }
+}
+
+test.describe('chat activity', () => {
+  let chatPage: ChatPage;
+
+  test.beforeEach(async ({ page }) => {
+    chatPage = new ChatPage(page);
+    await chatPage.goto();
   });
 
-  test('toggle between send/stop button based on activity', async ({
-    authenticatedPage,
-  }) => {
-    await expect(authenticatedPage.getByTestId('send-button')).toBeDisabled();
-    await authenticatedPage.getByPlaceholder('Send a message...').click();
-    await authenticatedPage
-      .getByPlaceholder('Send a message...')
-      .fill('this is a test message, respond with "test"');
-    await expect(
-      authenticatedPage.getByTestId('send-button'),
-    ).not.toBeDisabled();
-    await authenticatedPage.keyboard.press('Enter');
-
-    await expect(authenticatedPage.getByTestId('stop-button')).toBeVisible();
-    await expect(authenticatedPage.getByRole('main')).toContainText('test');
-    await expect(authenticatedPage.getByTestId('send-button')).toBeVisible();
+  test('send a user message and receive response', async () => {
+    await chatPage.sendUserMessage('why is grass green?');
+    await chatPage.isGenerationComplete();
+    expect(await chatPage.getAssistantResponse()).toContain(
+      "it's just green duh!",
+    );
   });
 
-  test('stop generation after submission', async ({ authenticatedPage }) => {
-    await authenticatedPage.getByPlaceholder('Send a message...').click();
-    await authenticatedPage
-      .getByPlaceholder('Send a message...')
-      .fill('this is a test message, respond with "test"');
-    await authenticatedPage.keyboard.press('Enter');
-    await expect(authenticatedPage.getByRole('main')).toContainText('test');
-    await authenticatedPage.getByTestId('stop-button').click();
-    await expect(authenticatedPage.getByTestId('send-button')).toBeVisible();
+  test('redirect to /chat/:id after submitting message', async () => {
+    await chatPage.sendUserMessage('why is grass green?');
+    await chatPage.isGenerationComplete();
+    expect(await chatPage.getAssistantResponse()).toContain(
+      "it's just green duh!",
+    );
+    await chatPage.hasChatIdInUrl();
   });
 
-  test('edit user message', async ({ authenticatedPage }) => {
-    await authenticatedPage.getByTestId('multimodal-input').click();
-    await authenticatedPage
-      .getByTestId('multimodal-input')
-      .fill('this is a test message, respond with "test"');
-    await authenticatedPage.keyboard.press('Enter');
+  test('send a user message from suggestion', async () => {
+    await chatPage.sendUserMessageFromSuggestion();
+    await chatPage.isGenerationComplete();
+    expect(await chatPage.getAssistantResponse()).toContain(
+      'with next.js you can ship fast!',
+    );
+  });
 
-    await expect(authenticatedPage.getByTestId('message-user-0')).toContainText(
-      'this is a test message, respond with "test"',
+  test('toggle between send/stop button based on activity', async () => {
+    await expect(chatPage.sendButton).toBeVisible();
+    await expect(chatPage.sendButton).toBeDisabled();
+
+    await chatPage.sendUserMessage('why is grass green?');
+
+    await expect(chatPage.sendButton).not.toBeVisible();
+    await expect(chatPage.stopButton).toBeVisible();
+
+    await chatPage.isGenerationComplete();
+
+    await expect(chatPage.stopButton).not.toBeVisible();
+    await expect(chatPage.sendButton).toBeVisible();
+  });
+
+  test('stop generation during submission', async () => {
+    await chatPage.sendUserMessage('why is grass green?');
+    await chatPage.stopButton.click();
+    await expect(chatPage.sendButton).toBeVisible();
+  });
+
+  test('edit user message and resubmit', async () => {
+    await chatPage.sendUserMessage('why is grass green?');
+    await chatPage.isGenerationComplete();
+
+    expect(await chatPage.getAssistantResponse()).toContain(
+      "it's just green duh!",
     );
 
-    await expect(
-      authenticatedPage.getByTestId('message-assistant-1'),
-    ).toContainText('test');
+    await chatPage.editAndResendUserMessage('why is the sky blue?');
+    await chatPage.isGenerationComplete();
 
-    await authenticatedPage.getByTestId('edit-user-0').click();
-    await authenticatedPage
-      .getByTestId('message-editor')
-      .fill('this is a test message, respond with "edited test"');
-
-    await authenticatedPage.getByTestId('message-editor-send-button').click();
-
-    await expect(authenticatedPage.getByTestId('message-user-0')).toContainText(
-      'this is a test message, respond with "edited test"',
+    expect(await chatPage.getAssistantResponse()).toContain(
+      "it's just blue duh!",
     );
+  });
 
-    await expect(
-      authenticatedPage.getByTestId('message-assistant-1'),
-    ).toContainText('edited test');
+  test('hide suggested actions after sending message', async () => {
+    await chatPage.isElementVisible('suggested-actions');
+    await chatPage.sendUserMessageFromSuggestion();
+    await chatPage.isElementNotVisible('suggested-actions');
+  });
+
+  test('handle file upload and send image attachment with message', async () => {
+    await chatPage.addImageAttachment();
+
+    await chatPage.isElementVisible('attachments-preview');
+    await chatPage.isElementVisible('input-attachment-loader');
+    await chatPage.isElementNotVisible('input-attachment-loader');
+
+    await chatPage.sendUserMessage('who painted this?');
+    await chatPage.isElementVisible('message-attachments-0');
+
+    await chatPage.isGenerationComplete();
+
+    await chatPage.isElementVisible('message-assistant-1');
+    expect(await chatPage.getAssistantResponse()).toContain(
+      'this painting is by monet!',
+    );
   });
 });

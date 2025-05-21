@@ -1,25 +1,25 @@
-// Define your models here.
+export const DEFAULT_CHAT_MODEL: string = 'chat-model-small';
 
-export interface Model {
+interface ChatModel {
   id: string;
-  label: string;
-  apiIdentifier: string;
+  name: string;
   description: string;
 }
 
-export const models: Array<Model> = [
+export const chatModels: Array<ChatModel> = [
   {
-    id: 'gpt-4o-mini',
-    label: 'GPT 4o mini',
-    apiIdentifier: 'gpt-4o-mini',
+    id: 'chat-model-small',
+    name: 'Small model',
     description: 'Small model for fast, lightweight tasks',
   },
   {
-    id: 'gpt-4o',
-    label: 'GPT 4o',
-    apiIdentifier: 'gpt-4o',
-    description: 'For complex, multi-step tasks',
+    id: 'chat-model-large',
+    name: 'Large model',
+    description: 'Large model for complex, multi-step tasks',
   },
-] as const;
-
-export const DEFAULT_MODEL_NAME: string = 'gpt-4o-mini';
+  {
+    id: 'chat-model-reasoning',
+    name: 'Reasoning model',
+    description: 'Uses advanced reasoning',
+  },
+];

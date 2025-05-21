@@ -18,7 +18,7 @@ interface MessagesProps {
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
-  isBlockVisible: boolean;
+  isArtifactVisible: boolean;
 }
 
 function PureMessages({
@@ -36,13 +36,14 @@ function PureMessages({
   return (
     <div
       ref={messagesContainerRef}
-      className="messages flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
+      className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
     >
-      {/* {messages.length === 0 && <Overview />} */}
+      {messages.length === 0 && <Overview />}
 
       {messages.map((message, index) => (
         <PreviewMessage
           key={message.id}
+          index={index}
           chatId={chatId}
           message={message}
           isLoading={isLoading && messages.length - 1 === index}
@@ -54,7 +55,6 @@ function PureMessages({
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
-          index={index}
         />
       ))}
 
@@ -71,7 +71,7 @@ function PureMessages({
 }
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
-  if (prevProps.isBlockVisible && nextProps.isBlockVisible) return true;
+  if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) return true;
 
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
