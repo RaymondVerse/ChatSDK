@@ -1,56 +1,50 @@
-import { Sidebar } from "@/app/sidebar";
-import { prisma } from "@/lib/prisma";
+import { type Metadata } from 'next'
+import { notFound, redirect } from 'next/navigation'
 
-import { Chat } from "../../chat";
-import { type Metadata } from "next";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from '@/auth'
+import { getChat } from '@/app/actions'
+import { Chat } from '@/components/chat'
+
+export const runtime = 'edge'
+export const preferredRegion = 'home'
 
 export interface ChatPageProps {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }
 
 export async function generateMetadata({
-  params,
+  params
 }: ChatPageProps): Promise<Metadata> {
-  const chat = await prisma.chat.findFirst({
-    where: {
-      id: params.id,
-    },
-  });
-  return {
-    title: chat?.title.slice(0, 50) ?? "Chat",
-  };
-}
+  const session = await auth()
 
-// Prisma does not support Edge without the Data Proxy currently
-export const runtime = "nodejs"; // default
-export const preferredRegion = "home";
-export const dynamic = "force-dynamic";
-export default async function ChatPage({ params }: ChatPageProps) {
-  const session = await getServerSession(authOptions);
-  const chat = await prisma.chat.findFirst({
-    where: {
-      id: params.id,
-    },
-    include: {
-      messages: true,
-    },
-  });
-  if (!chat) {
-    throw new Error("Chat not found");
+  if (!session?.user) {
+    return {}
   }
 
-  return (
-    <div className="relative flex h-full w-full overflow-hidden">
-      <Sidebar session={session} />
-      <div className="flex h-full min-w-0 flex-1 flex-col">
-        <Chat id={chat.id} messages={chat.messages} />
-      </div>
-    </div>
-  );
+  const chat = await getChat(params.id, session.user.id)
+  return {
+    title: chat?.title.toString().slice(0, 50) ?? 'Chat'
+  }
 }
 
-ChatPage.displayName = "ChatPage";
+export default async function ChatPage({ params }: ChatPageProps) {
+  const session = await auth()
+
+  if (!session?.user) {
+    redirect(`/sign-in?next=/chat/${params.id}`)
+  }
+
+  const chat = await getChat(params.id, session.user.id)
+
+  if (!chat) {
+    notFound()
+  }
+
+  if (chat?.userId !== session?.user?.id) {
+    notFound()
+  }
+
+  return <Chat id={chat.id} initialMessages={chat.messages} />
+}
