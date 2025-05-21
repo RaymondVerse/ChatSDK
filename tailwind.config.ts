@@ -72,7 +72,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
-  safelist: ['w-32', 'w-44', 'w-52'],
+  plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],
 };
 export default config;

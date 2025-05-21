@@ -1,12 +1,12 @@
-import Link from "next/link";
-import React, { memo } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import Link from 'next/link';
+import React, { memo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   const components = {
     code: ({ node, inline, className, children, ...props }: any) => {
-      const match = /language-(\w+)/.exec(className || "");
+      const match = /language-(\w+)/.exec(className || '');
       return !inline && match ? (
         <pre
           {...props}
@@ -63,6 +63,48 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
         </Link>
       );
     },
+    h1: ({ node, children, ...props }: any) => {
+      return (
+        <h1 className="text-3xl font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h1>
+      );
+    },
+    h2: ({ node, children, ...props }: any) => {
+      return (
+        <h2 className="text-2xl font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h2>
+      );
+    },
+    h3: ({ node, children, ...props }: any) => {
+      return (
+        <h3 className="text-xl font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h3>
+      );
+    },
+    h4: ({ node, children, ...props }: any) => {
+      return (
+        <h4 className="text-lg font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h4>
+      );
+    },
+    h5: ({ node, children, ...props }: any) => {
+      return (
+        <h5 className="text-base font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h5>
+      );
+    },
+    h6: ({ node, children, ...props }: any) => {
+      return (
+        <h6 className="text-sm font-semibold mt-6 mb-2" {...props}>
+          {children}
+        </h6>
+      );
+    },
   };
 
   return (
@@ -74,5 +116,5 @@ const NonMemoizedMarkdown = ({ children }: { children: string }) => {
 
 export const Markdown = memo(
   NonMemoizedMarkdown,
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
+  (prevProps, nextProps) => prevProps.children === nextProps.children
 );
