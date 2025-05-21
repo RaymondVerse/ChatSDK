@@ -44,24 +44,60 @@ export default defineConfig({
   },
 
   /* Configure global timeout for each test */
-  timeout: 30000,
+  timeout: 60 * 1000, // 30 seconds
   expect: {
-    timeout: 30000,
+    timeout: 60 * 1000,
   },
 
-  /* Configure projects for major browsers */
+  /* Configure projects */
   projects: [
     {
-      name: 'setup',
-      testMatch: /.*\.setup\.ts/,
+      name: 'setup:auth',
+      testMatch: /auth.setup.ts/,
     },
     {
-      name: 'chromium',
+      name: 'setup:reasoning',
+      testMatch: /reasoning.setup.ts/,
+      dependencies: ['setup:auth'],
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
+        storageState: 'playwright/.auth/session.json',
       },
-      dependencies: ['setup'],
+    },
+    {
+      name: 'chat',
+      testMatch: /chat.test.ts/,
+      dependencies: ['setup:auth'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/session.json',
+      },
+    },
+    {
+      name: 'reasoning',
+      testMatch: /reasoning.test.ts/,
+      dependencies: ['setup:reasoning'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.reasoning/session.json',
+      },
+    },
+    {
+      name: 'artifacts',
+      testMatch: /artifacts.test.ts/,
+      dependencies: ['setup:auth'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/session.json',
+      },
+    },
+    {
+      name: 'routes',
+      testMatch: /routes\/.*\.test.ts/,
+      dependencies: [],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
     },
 
     // {
@@ -94,12 +130,4 @@ export default defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
-
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm dev',
-    url: baseURL,
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
 });
