@@ -1,41 +1,15 @@
-import { CoreMessage } from 'ai'
+import { z } from 'zod';
 
-export type Message = CoreMessage & {
-  id: string
-}
+export type DataPart = { type: 'append-message'; message: string };
 
-export interface Chat extends Record<string, any> {
-  id: string
-  title: string
-  createdAt: Date
-  userId: string
-  path: string
-  messages: Message[]
-  sharePath?: string
-}
+export const messageMetadataSchema = z.object({
+  createdAt: z.string(),
+});
 
-export type ServerActionResult<Result> = Promise<
-  | Result
-  | {
-      error: string
-    }
->
+export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
-export interface Session {
-  user: {
-    id: string
-    email: string
-  }
-}
-
-export interface AuthResult {
-  type: string
-  message: string
-}
-
-export interface User extends Record<string, any> {
-  id: string
-  email: string
-  password: string
-  salt: string
+export interface Attachment {
+  name: string;
+  url: string;
+  contentType: string;
 }

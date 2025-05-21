@@ -1,4 +1,4 @@
-import type { Attachment, UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
 import { formatDistance } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -26,7 +26,9 @@ import { codeArtifact } from '@/artifacts/code/client';
 import { sheetArtifact } from '@/artifacts/sheet/client';
 import { textArtifact } from '@/artifacts/text/client';
 import equal from 'fast-deep-equal';
-import { UseChatHelpers } from '@ai-sdk/react';
+import type { UseChatHelpers } from '@ai-sdk/react';
+import type { VisibilityType } from './visibility-selector';
+import type { Attachment } from '@/lib/types';
 
 export const artifactDefinitions = [
   textArtifact,
@@ -66,6 +68,7 @@ function PureArtifact({
   reload,
   votes,
   isReadonly,
+  selectedVisibilityType,
 }: {
   chatId: string;
   input: string;
@@ -81,6 +84,7 @@ function PureArtifact({
   handleSubmit: UseChatHelpers['handleSubmit'];
   reload: UseChatHelpers['reload'];
   isReadonly: boolean;
+  selectedVisibilityType: VisibilityType;
 }) {
   const { artifact, setArtifact, metadata, setMetadata } = useArtifact();
 
@@ -309,7 +313,7 @@ function PureArtifact({
                 )}
               </AnimatePresence>
 
-              <div className="flex flex-col h-full justify-between items-center gap-4">
+              <div className="flex flex-col h-full justify-between items-center">
                 <ArtifactMessages
                   chatId={chatId}
                   status={status}
@@ -335,6 +339,7 @@ function PureArtifact({
                     append={append}
                     className="bg-background dark:bg-muted"
                     setMessages={setMessages}
+                    selectedVisibilityType={selectedVisibilityType}
                   />
                 </form>
               </div>
@@ -503,6 +508,8 @@ export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
+  if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
+    return false;
 
   return true;
 });
