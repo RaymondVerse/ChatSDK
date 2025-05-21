@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
-import { type User } from 'next-auth';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -19,6 +18,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { BetterTooltip } from '@/components/ui/tooltip';
+import Link from 'next/link';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -29,21 +29,21 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex flex-row justify-between items-center">
-            <div
+            <Link
+              href="/"
               onClick={() => {
                 setOpenMobile(false);
-                router.push('/');
-                router.refresh();
               }}
               className="flex flex-row gap-3 items-center"
             >
               <span className="text-lg font-semibold px-2 hover:bg-muted rounded-md cursor-pointer">
                 Chatbot
               </span>
-            </div>
+            </Link>
             <BetterTooltip content="New Chat" align="start">
               <Button
                 variant="ghost"
+                type="button"
                 className="p-2 h-fit"
                 onClick={() => {
                   setOpenMobile(false);
@@ -58,11 +58,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        <SidebarGroup className="-mx-2">
           <SidebarHistory user={user} />
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="gap-0">
+      <SidebarFooter className="gap-0 -mx-2">
         {user && (
           <SidebarGroup>
             <SidebarGroupContent>

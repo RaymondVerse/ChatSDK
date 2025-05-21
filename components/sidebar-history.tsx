@@ -3,8 +3,8 @@
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { type User } from 'next-auth';
-import { useEffect, useState } from 'react';
+import type { User } from 'next-auth';
+import { memo, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -34,8 +34,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Chat } from '@/lib/db/schema';
+import type { Chat } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
+import equal from 'fast-deep-equal';
 
 type GroupedChats = {
   today: Chat[];
@@ -45,7 +46,7 @@ type GroupedChats = {
   older: Chat[];
 };
 
-const ChatItem = ({
+const PureChatItem = ({
   chat,
   isActive,
   onDelete,
@@ -62,6 +63,7 @@ const ChatItem = ({
         <span>{chat.title}</span>
       </Link>
     </SidebarMenuButton>
+
     <DropdownMenu modal={true}>
       <DropdownMenuTrigger asChild>
         <SidebarMenuAction
@@ -84,6 +86,11 @@ const ChatItem = ({
     </DropdownMenu>
   </SidebarMenuItem>
 );
+
+export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
+  if (prevProps.isActive !== nextProps.isActive) return false;
+  return true;
+});
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
@@ -213,7 +220,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         lastWeek: [],
         lastMonth: [],
         older: [],
-      } as GroupedChats
+      } as GroupedChats,
     );
   };
 

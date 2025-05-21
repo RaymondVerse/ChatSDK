@@ -1,16 +1,21 @@
-import { SetStateAction } from 'react';
+import { memo, type SetStateAction } from 'react';
 
-import { UIBlock } from './block';
+import type { UIBlock } from './block';
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
 
-const getActionText = (type: 'create' | 'update' | 'request-suggestions') => {
+const getActionText = (
+  type: 'create' | 'update' | 'request-suggestions',
+  tense: 'present' | 'past',
+) => {
   switch (type) {
     case 'create':
-      return 'Creating';
+      return tense === 'present' ? 'Creating' : 'Created';
     case 'update':
-      return 'Updating';
+      return tense === 'present' ? 'Updating' : 'Updated';
     case 'request-suggestions':
-      return 'Adding suggestions';
+      return tense === 'present'
+        ? 'Adding suggestions'
+        : 'Added suggestions to';
     default:
       return null;
   }
@@ -18,19 +23,19 @@ const getActionText = (type: 'create' | 'update' | 'request-suggestions') => {
 
 interface DocumentToolResultProps {
   type: 'create' | 'update' | 'request-suggestions';
-  result: any;
+  result: { id: string; title: string };
   block: UIBlock;
   setBlock: (value: SetStateAction<UIBlock>) => void;
 }
 
-export function DocumentToolResult({
+function PureDocumentToolResult({
   type,
   result,
-  block,
   setBlock,
 }: DocumentToolResultProps) {
   return (
-    <div
+    <button
+      type="button"
       className="bg-background cursor-pointer border py-2 px-3 rounded-xl w-fit flex flex-row gap-3 items-start"
       onClick={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -61,21 +66,43 @@ export function DocumentToolResult({
           <MessageIcon />
         ) : null}
       </div>
-      <div className="">
-        {getActionText(type)} {result.title}
+      <div className="text-left">
+        {`${getActionText(type, 'past')} "${result.title}"`}
       </div>
-    </div>
+    </button>
   );
 }
 
+export const DocumentToolResult = memo(PureDocumentToolResult, () => true);
+
 interface DocumentToolCallProps {
   type: 'create' | 'update' | 'request-suggestions';
-  args: any;
+  args: { title: string };
+  setBlock: (value: SetStateAction<UIBlock>) => void;
 }
 
-export function DocumentToolCall({ type, args }: DocumentToolCallProps) {
+function PureDocumentToolCall({ type, args, setBlock }: DocumentToolCallProps) {
   return (
-    <div className="w-fit border py-2 px-3 rounded-xl flex flex-row items-start justify-between gap-3">
+    <button
+      type="button"
+      className="cursor pointer w-fit border py-2 px-3 rounded-xl flex flex-row items-start justify-between gap-3"
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+
+        const boundingBox = {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        };
+
+        setBlock((currentBlock) => ({
+          ...currentBlock,
+          isVisible: true,
+          boundingBox,
+        }));
+      }}
+    >
       <div className="flex flex-row gap-3 items-start">
         <div className="text-zinc-500 mt-1">
           {type === 'create' ? (
@@ -87,12 +114,14 @@ export function DocumentToolCall({ type, args }: DocumentToolCallProps) {
           ) : null}
         </div>
 
-        <div className="">
-          {getActionText(type)} {args.title}
+        <div className="text-left">
+          {`${getActionText(type, 'present')} ${args.title ? `"${args.title}"` : ''}`}
         </div>
       </div>
 
       <div className="animate-spin mt-1">{<LoaderIcon />}</div>
-    </div>
+    </button>
   );
 }
+
+export const DocumentToolCall = memo(PureDocumentToolCall, () => true);

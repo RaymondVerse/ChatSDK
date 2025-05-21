@@ -4,19 +4,17 @@ import { z } from 'zod';
 
 import { auth } from '@/app/(auth)/auth';
 
+// Use Blob instead of File since File is not available in Node.js environment
 const FileSchema = z.object({
   file: z
-    .instanceof(File)
+    .instanceof(Blob)
     .refine((file) => file.size <= 5 * 1024 * 1024, {
       message: 'File size should be less than 5MB',
     })
-    .refine(
-      (file) =>
-        ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type),
-      {
-        message: 'File type should be JPEG, PNG, or PDF',
-      }
-    ),
+    // Update the file type based on the kind of files you want to accept
+    .refine((file) => ['image/jpeg', 'image/png'].includes(file.type), {
+      message: 'File type should be JPEG or PNG',
+    }),
 });
 
 export async function POST(request: Request) {
@@ -32,7 +30,7 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as Blob;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -48,7 +46,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    const filename = file.name;
+    // Get filename from formData since Blob doesn't have name property
+    const filename = (formData.get('file') as File).name;
     const fileBuffer = await file.arrayBuffer();
 
     try {
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: 'Failed to process request' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

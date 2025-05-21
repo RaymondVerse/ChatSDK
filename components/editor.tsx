@@ -6,7 +6,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import React, { memo, useEffect, useRef } from 'react';
 
-import { Suggestion } from '@/lib/db/schema';
+import type { Suggestion } from '@/lib/db/schema';
 import {
   documentSchema,
   handleTransaction,
@@ -89,7 +89,7 @@ function PureEditor({
   useEffect(() => {
     if (editorRef.current && content) {
       const currentContent = buildContentFromDocument(
-        editorRef.current.state.doc
+        editorRef.current.state.doc,
       );
 
       if (status === 'streaming') {
@@ -98,7 +98,7 @@ function PureEditor({
         const transaction = editorRef.current.state.tr.replaceWith(
           0,
           editorRef.current.state.doc.content.size,
-          newDocument.content
+          newDocument.content,
         );
 
         transaction.setMeta('no-save', true);
@@ -112,7 +112,7 @@ function PureEditor({
         const transaction = editorRef.current.state.tr.replaceWith(
           0,
           editorRef.current.state.doc.content.size,
-          newDocument.content
+          newDocument.content,
         );
 
         transaction.setMeta('no-save', true);
@@ -122,17 +122,17 @@ function PureEditor({
   }, [content, status]);
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.state.doc && content) {
+    if (editorRef.current?.state.doc && content) {
       const projectedSuggestions = projectWithPositions(
         editorRef.current.state.doc,
-        suggestions
+        suggestions,
       ).filter(
-        (suggestion) => suggestion.selectionStart && suggestion.selectionEnd
+        (suggestion) => suggestion.selectionStart && suggestion.selectionEnd,
       );
 
       const decorations = createDecorations(
         projectedSuggestions,
-        editorRef.current
+        editorRef.current,
       );
 
       const transaction = editorRef.current.state.tr;
@@ -147,24 +147,14 @@ function PureEditor({
 }
 
 function areEqual(prevProps: EditorProps, nextProps: EditorProps) {
-  if (prevProps.suggestions !== nextProps.suggestions) {
-    return false;
-  } else if (prevProps.currentVersionIndex !== nextProps.currentVersionIndex) {
-    return false;
-  } else if (prevProps.isCurrentVersion !== nextProps.isCurrentVersion) {
-    return false;
-  } else if (
-    prevProps.status === 'streaming' &&
-    nextProps.status === 'streaming'
-  ) {
-    return false;
-  } else if (prevProps.content !== nextProps.content) {
-    return false;
-  } else if (prevProps.saveContent !== nextProps.saveContent) {
-    return false;
-  }
-
-  return true;
+  return (
+    prevProps.suggestions === nextProps.suggestions &&
+    prevProps.currentVersionIndex === nextProps.currentVersionIndex &&
+    prevProps.isCurrentVersion === nextProps.isCurrentVersion &&
+    !(prevProps.status === 'streaming' && nextProps.status === 'streaming') &&
+    prevProps.content === nextProps.content &&
+    prevProps.saveContent === nextProps.saveContent
+  );
 }
 
 export const Editor = memo(PureEditor, areEqual);

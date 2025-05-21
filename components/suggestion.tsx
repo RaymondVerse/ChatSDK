@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useWindowSize } from 'usehooks-ts';
 
-import { UISuggestion } from '@/lib/editor/suggestions';
+import type { UISuggestion } from '@/lib/editor/suggestions';
 
 import { CrossIcon, MessageIcon } from './icons';
 import { Button } from './ui/button';
@@ -46,14 +46,15 @@ export const Suggestion = ({
               <div className="size-4 bg-muted-foreground/25 rounded-full" />
               <div className="font-medium">Assistant</div>
             </div>
-            <div
+            <button
+              type="button"
               className="text-xs text-gray-500 cursor-pointer"
               onClick={() => {
                 setIsExpanded(false);
               }}
             >
               <CrossIcon size={12} />
-            </div>
+            </button>
           </div>
           <div>{suggestion.description}</div>
           <Button

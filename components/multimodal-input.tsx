@@ -1,16 +1,23 @@
 'use client';
 
-import { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type {
+  Attachment,
+  ChatRequestOptions,
+  CreateMessage,
+  Message,
+} from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
-import React, {
+import type React from 'react';
+import {
   useRef,
   useEffect,
   useState,
   useCallback,
-  Dispatch,
-  SetStateAction,
-  ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+  type ChangeEvent,
+  memo,
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
@@ -21,21 +28,9 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { SuggestedActions } from './suggested-actions';
 
-const suggestedActions = [
-  {
-    title: 'What is the weather',
-    label: 'in San Francisco?',
-    action: 'What is the weather in San Francisco?',
-  },
-  {
-    title: 'Help me draft an essay',
-    label: 'about Silicon Valley',
-    action: 'Help me draft a short essay about Silicon Valley',
-  },
-];
-
-export function MultimodalInput({
+function PureMultimodalInput({
   chatId,
   input,
   setInput,
@@ -60,13 +55,13 @@ export function MultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   handleSubmit: (
     event?: {
       preventDefault?: () => void;
     },
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => void;
   className?: string;
 }) {
@@ -88,7 +83,7 @@ export function MultimodalInput({
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     'input',
-    ''
+    '',
   );
 
   useEffect(() => {
@@ -142,7 +137,7 @@ export function MultimodalInput({
     formData.append('file', file);
 
     try {
-      const response = await fetch(`/api/files/upload`, {
+      const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
@@ -156,10 +151,9 @@ export function MultimodalInput({
           name: pathname,
           contentType: contentType,
         };
-      } else {
-        const { error } = await response.json();
-        toast.error(error);
       }
+      const { error } = await response.json();
+      toast.error(error);
     } catch (error) {
       toast.error('Failed to upload file, please try again!');
     }
@@ -175,7 +169,7 @@ export function MultimodalInput({
         const uploadPromises = files.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined
+          (attachment) => attachment !== undefined,
         );
 
         setAttachments((currentAttachments) => [
@@ -188,7 +182,7 @@ export function MultimodalInput({
         setUploadQueue([]);
       }
     },
-    [setAttachments]
+    [setAttachments],
   );
 
   return (
@@ -196,36 +190,7 @@ export function MultimodalInput({
       {messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
-          <div className="grid sm:grid-cols-2 gap-2 w-full">
-            {suggestedActions.map((suggestedAction, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.05 * index }}
-                key={index}
-                className={index > 1 ? 'hidden sm:block' : 'block'}
-              >
-                <Button
-                  variant="ghost"
-                  onClick={async () => {
-                    window.history.replaceState({}, '', `/chat/${chatId}`);
-
-                    append({
-                      role: 'user',
-                      content: suggestedAction.action,
-                    });
-                  }}
-                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
-                >
-                  <span className="font-medium">{suggestedAction.title}</span>
-                  <span className="text-muted-foreground">
-                    {suggestedAction.label}
-                  </span>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
+          <SuggestedActions append={append} chatId={chatId} />
         )}
 
       <input
@@ -264,7 +229,7 @@ export function MultimodalInput({
         onChange={handleInput}
         className={cx(
           'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
-          className
+          className,
         )}
         rows={3}
         autoFocus
@@ -319,3 +284,13 @@ export function MultimodalInput({
     </div>
   );
 }
+
+export const MultimodalInput = memo(
+  PureMultimodalInput,
+  (prevProps, currentProps) => {
+    if (prevProps.input !== currentProps.input) return false;
+    if (prevProps.isLoading !== currentProps.isLoading) return false;
+
+    return true;
+  },
+);

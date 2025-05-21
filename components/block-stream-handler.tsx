@@ -1,7 +1,7 @@
-import { JSONValue } from 'ai';
-import { Dispatch, memo, SetStateAction } from 'react';
+import type { JSONValue } from 'ai';
+import { type Dispatch, memo, type SetStateAction } from 'react';
 
-import { UIBlock } from './block';
+import type { UIBlock } from './block';
 import { useBlockStream } from './use-block-stream';
 
 interface BlockStreamHandlerProps {
@@ -9,7 +9,7 @@ interface BlockStreamHandlerProps {
   streamingData: JSONValue[] | undefined;
 }
 
-export function PureBlockStreamHandler({
+function PureBlockStreamHandler({
   setBlock,
   streamingData,
 }: BlockStreamHandlerProps) {
@@ -23,7 +23,7 @@ export function PureBlockStreamHandler({
 
 function areEqual(
   prevProps: BlockStreamHandlerProps,
-  nextProps: BlockStreamHandlerProps
+  nextProps: BlockStreamHandlerProps,
 ) {
   if (!prevProps.streamingData && !nextProps.streamingData) {
     return true;

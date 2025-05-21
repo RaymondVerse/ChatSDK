@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
 import cx from 'classnames';
 import {
   AnimatePresence,
@@ -8,9 +8,16 @@ import {
   useMotionValue,
   useTransform,
 } from 'framer-motion';
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import {
+  type Dispatch,
+  memo,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useOnClickOutside } from 'usehooks-ts';
-
+import { nanoid } from 'nanoid';
 import {
   Tooltip,
   TooltipContent,
@@ -26,7 +33,7 @@ import {
   StopIcon,
   SummarizeIcon,
 } from './icons';
-import { Button } from './ui/button';
+import equal from 'fast-deep-equal';
 
 type ToolProps = {
   type: 'final-polish' | 'request-suggestions' | 'adjust-reading-level';
@@ -39,7 +46,7 @@ type ToolProps = {
   isAnimating: boolean;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
 };
 
@@ -142,6 +149,8 @@ const Tool = ({
   );
 };
 
+const randomArr = [...Array(6)].map((x) => nanoid(5));
+
 const ReadingLevelSelector = ({
   setSelectedTool,
   append,
@@ -151,7 +160,7 @@ const ReadingLevelSelector = ({
   isAnimating: boolean;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
 }) => {
   const LEVELS = [
@@ -182,9 +191,9 @@ const ReadingLevelSelector = ({
 
   return (
     <div className="relative flex flex-col justify-end items-center">
-      {[...Array(6)].map((_, index) => (
+      {randomArr.map((id) => (
         <motion.div
-          key={`dot-${index}`}
+          key={id}
           className="size-[40px] flex flex-row items-center justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -204,7 +213,7 @@ const ReadingLevelSelector = ({
                 {
                   'bg-primary text-primary-foreground': currentLevel !== 2,
                   'bg-background text-foreground': currentLevel === 2,
-                }
+                },
               )}
               style={{ y }}
               drag="y"
@@ -264,7 +273,7 @@ export const Tools = ({
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isAnimating: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
@@ -317,7 +326,7 @@ export const Tools = ({
   );
 };
 
-export const Toolbar = ({
+const PureToolbar = ({
   isToolbarVisible,
   setIsToolbarVisible,
   append,
@@ -330,13 +339,13 @@ export const Toolbar = ({
   isLoading: boolean;
   append: (
     message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
+    chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   stop: () => void;
   setMessages: Dispatch<SetStateAction<Message[]>>;
 }) => {
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -458,3 +467,7 @@ export const Toolbar = ({
     </TooltipProvider>
   );
 };
+
+export const Toolbar = memo(PureToolbar, (prevProps, nextProps) => {
+  return equal(prevProps, nextProps);
+});

@@ -1,16 +1,16 @@
 import {
-  convertToCoreMessages,
-  Message,
+  type Message,
   StreamData,
+  convertToCoreMessages,
   streamObject,
   streamText,
 } from 'ai';
 import { z } from 'zod';
 
-import { customModel } from '@/ai';
-import { models } from '@/ai/models';
-import { systemPrompt } from '@/ai/prompts';
 import { auth } from '@/app/(auth)/auth';
+import { customModel } from '@/lib/ai';
+import { models } from '@/lib/ai/models';
+import { systemPrompt } from '@/lib/ai/prompts';
 import {
   deleteChatById,
   getChatById,
@@ -20,7 +20,7 @@ import {
   saveMessages,
   saveSuggestions,
 } from '@/lib/db/queries';
-import { Suggestion } from '@/lib/db/schema';
+import type { Suggestion } from '@/lib/db/schema';
 import {
   generateUUID,
   getMostRecentUserMessage,
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
   const streamingData = new StreamData();
 
-  const result = await streamText({
+  const result = streamText({
     model: customModel(model.apiIdentifier),
     system: systemPrompt,
     messages: coreMessages,
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         }),
         execute: async ({ latitude, longitude }) => {
           const response = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`,
           );
 
           const weatherData = await response.json();
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
         }),
         execute: async ({ title }) => {
           const id = generateUUID();
-          let draftText: string = '';
+          let draftText = '';
 
           streamingData.append({
             type: 'id',
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
             content: '',
           });
 
-          const { fullStream } = await streamText({
+          const { fullStream } = streamText({
             model: customModel(model.apiIdentifier),
             system:
               'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
 
           streamingData.append({ type: 'finish', content: '' });
 
-          if (session.user && session.user.id) {
+          if (session.user?.id) {
             await saveDocument({
               id,
               title,
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
           return {
             id,
             title,
-            content: `A document was created and is now visible to the user.`,
+            content: 'A document was created and is now visible to the user.',
           };
         },
       },
@@ -192,14 +192,14 @@ export async function POST(request: Request) {
           }
 
           const { content: currentContent } = document;
-          let draftText: string = '';
+          let draftText = '';
 
           streamingData.append({
             type: 'clear',
             content: document.title,
           });
 
-          const { fullStream } = await streamText({
+          const { fullStream } = streamText({
             model: customModel(model.apiIdentifier),
             system:
               'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
@@ -236,7 +236,7 @@ export async function POST(request: Request) {
 
           streamingData.append({ type: 'finish', content: '' });
 
-          if (session.user && session.user.id) {
+          if (session.user?.id) {
             await saveDocument({
               id,
               title: document.title,
@@ -268,11 +268,11 @@ export async function POST(request: Request) {
             };
           }
 
-          let suggestions: Array<
+          const suggestions: Array<
             Omit<Suggestion, 'userId' | 'createdAt' | 'documentCreatedAt'>
           > = [];
 
-          const { elementStream } = await streamObject({
+          const { elementStream } = streamObject({
             model: customModel(model.apiIdentifier),
             system:
               'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
@@ -305,7 +305,7 @@ export async function POST(request: Request) {
             suggestions.push(suggestion);
           }
 
-          if (session.user && session.user.id) {
+          if (session.user?.id) {
             const userId = session.user.id;
 
             await saveSuggestions({
@@ -326,11 +326,11 @@ export async function POST(request: Request) {
         },
       },
     },
-    onFinish: async ({ responseMessages }) => {
-      if (session.user && session.user.id) {
+    onFinish: async ({ response }) => {
+      if (session.user?.id) {
         try {
           const responseMessagesWithoutIncompleteToolCalls =
-            sanitizeResponseMessages(responseMessages);
+            sanitizeResponseMessages(response.messages);
 
           await saveMessages({
             messages: responseMessagesWithoutIncompleteToolCalls.map(
@@ -350,7 +350,7 @@ export async function POST(request: Request) {
                   content: message.content,
                   createdAt: new Date(),
                 };
-              }
+              },
             ),
           });
         } catch (error) {

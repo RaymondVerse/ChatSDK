@@ -1,19 +1,19 @@
-import { Message } from 'ai';
-import { toast } from 'sonner';
-import { useSWRConfig } from 'swr';
-import { useCopyToClipboard } from 'usehooks-ts';
+import type { Message } from "ai";
+import { toast } from "sonner";
+import { useSWRConfig } from "swr";
+import { useCopyToClipboard } from "usehooks-ts";
 
-import { Vote } from '@/lib/db/schema';
-import { getMessageIdFromAnnotations } from '@/lib/utils';
+import type { Vote } from "@/lib/db/schema";
+import { getMessageIdFromAnnotations } from "@/lib/utils";
 
-import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
-import { Button } from './ui/button';
+import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
+import { Button } from "./ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from './ui/tooltip';
+} from "./ui/tooltip";
 
 export function MessageActions({
   chatId,
@@ -30,7 +30,7 @@ export function MessageActions({
   const [_, copyToClipboard] = useCopyToClipboard();
 
   if (isLoading) return null;
-  if (message.role === 'user') return null;
+  if (message.role === "user") return null;
   if (message.toolInvocations && message.toolInvocations.length > 0)
     return null;
 
@@ -44,7 +44,7 @@ export function MessageActions({
               variant="outline"
               onClick={async () => {
                 await copyToClipboard(message.content as string);
-                toast.success('Copied to clipboard!');
+                toast.success("Copied to clipboard!");
               }}
             >
               <CopyIcon />
@@ -57,22 +57,22 @@ export function MessageActions({
           <TooltipTrigger asChild>
             <Button
               className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
-              disabled={vote && vote.isUpvoted}
+              disabled={vote?.isUpvoted}
               variant="outline"
               onClick={async () => {
                 const messageId = getMessageIdFromAnnotations(message);
 
-                const upvote = fetch('/api/vote', {
-                  method: 'PATCH',
+                const upvote = fetch("/api/vote", {
+                  method: "PATCH",
                   body: JSON.stringify({
                     chatId,
                     messageId,
-                    type: 'up',
+                    type: "up",
                   }),
                 });
 
                 toast.promise(upvote, {
-                  loading: 'Upvoting Response...',
+                  loading: "Upvoting Response...",
                   success: () => {
                     mutate<Array<Vote>>(
                       `/api/vote?chatId=${chatId}`,
@@ -80,7 +80,7 @@ export function MessageActions({
                         if (!currentVotes) return [];
 
                         const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id
+                          (vote) => vote.messageId !== message.id,
                         );
 
                         return [
@@ -92,12 +92,12 @@ export function MessageActions({
                           },
                         ];
                       },
-                      { revalidate: false }
+                      { revalidate: false },
                     );
 
-                    return 'Upvoted Response!';
+                    return "Upvoted Response!";
                   },
-                  error: 'Failed to upvote response.',
+                  error: "Failed to upvote response.",
                 });
               }}
             >
@@ -116,17 +116,17 @@ export function MessageActions({
               onClick={async () => {
                 const messageId = getMessageIdFromAnnotations(message);
 
-                const downvote = fetch('/api/vote', {
-                  method: 'PATCH',
+                const downvote = fetch("/api/vote", {
+                  method: "PATCH",
                   body: JSON.stringify({
                     chatId,
                     messageId,
-                    type: 'down',
+                    type: "down",
                   }),
                 });
 
                 toast.promise(downvote, {
-                  loading: 'Downvoting Response...',
+                  loading: "Downvoting Response...",
                   success: () => {
                     mutate<Array<Vote>>(
                       `/api/vote?chatId=${chatId}`,
@@ -134,7 +134,7 @@ export function MessageActions({
                         if (!currentVotes) return [];
 
                         const votesWithoutCurrent = currentVotes.filter(
-                          (vote) => vote.messageId !== message.id
+                          (vote) => vote.messageId !== message.id,
                         );
 
                         return [
@@ -146,12 +146,12 @@ export function MessageActions({
                           },
                         ];
                       },
-                      { revalidate: false }
+                      { revalidate: false },
                     );
 
-                    return 'Downvoted Response!';
+                    return "Downvoted Response!";
                   },
-                  error: 'Failed to downvote response.',
+                  error: "Failed to downvote response.",
                 });
               }}
             >
